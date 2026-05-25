@@ -474,16 +474,29 @@ Context: used at LifeMoves and in social services hiring, where many strong cand
   };
   let scData=null, scSolved=false, quizKind='scenario';
 
+  // Force variety: rotate across the three hiring moments with specific focuses,
+  // so scenarios are not always about employment gaps.
+  const SC_MOMENTS = [
+    "REVIEWING A RESUME. Focus on how the resume LOOKS and reads: formatting and polish, the candidate's name, the school or no degree, an address or neighborhood, hobbies or affiliations, a nontraditional or self-taught background. Do NOT use an employment gap this time.",
+    "REVIEWING A RESUME. Focus on a life-circumstance signal other than a gap: parental status, a health note, caregiving responsibilities, a disability or different ability, or incarceration history. The manager must apply criteria fairly.",
+    "AN INTERVIEW IN THE ROOM. The manager must decide what to actually SAY or ASK next: which question to pose, how to respond to an answer, whether to make small talk. Surface confirmation bias, similarity bias, or the halo effect through what they say.",
+    "AN INTERVIEW IN THE ROOM. The manager clicked with the candidate (or didn't) early. Focus on what they say or do for the rest of the interview because of that first impression.",
+    "A HIRING DEBRIEF that is being run poorly: the team starts discussing before anyone wrote feedback down, or the most senior manager speaks first and anchors everyone, or the group is sliding into consensus too fast. The manager must decide how to handle the debrief itself."
+  ];
+  function pickMoment(){ return SC_MOMENTS[Math.floor(Math.random()*SC_MOMENTS.length)]; }
+
   function quizPrompt(lang, kind){
     const langLine = lang==='es' ? 'Write everything in warm, natural, professional Spanish.' : 'Write everything in English.';
     const base = buildSystemPrompt(lang) + "\n\n[ACTIVE MODE]\n";
     if(kind==='trap'){
+      const m = pickMoment();
       return base +
-        "MODE: Assumption Trap Spotter (multiple choice, KEEP IT SHORT). Generate ONE very short snap-judgment moment: a hiring manager forms a quick assumption about a candidate (one or two sentences max). Then write exactly THREE possible reads of that moment, ranked by alignment with the training:\n- BEST: correctly names the assumption as a bias/trap from the training and reframes it.\n- MEDIUM: partly catches it but misses the trap or the reframe.\n- LEAST: accepts the snap judgment at face value.\nKeep EVERYTHING short: each option max ~12 words, each feedback max ~20 words. Feedback names the trap (confirmation, similarity, halo, groupthink, anchoring, or a resume watch-out) with curiosity and no shame. Never use a candidate's identity as the twist. " + langLine +
+        "MODE: Assumption Trap Spotter (multiple choice, KEEP IT SHORT). The moment for THIS card must be: " + m + "\nGenerate ONE very short snap-judgment moment in that setting: a hiring manager forms a quick assumption (one or two sentences max). Then write exactly THREE possible reads of that moment, ranked by alignment with the training:\n- BEST: correctly names the assumption as a bias/trap from the training and reframes it.\n- MEDIUM: partly catches it but misses the trap or the reframe.\n- LEAST: accepts the snap judgment at face value.\nKeep EVERYTHING short: each option max ~12 words, each feedback max ~20 words. Feedback names the trap (confirmation, similarity, halo, groupthink, anchoring, or a resume watch-out) with curiosity and no shame. Vary the setup; do not default to employment gaps. Never use a candidate's identity as the twist. " + langLine +
         "\n\nReturn ONLY valid JSON, no markdown, no preamble, exactly:\n{\"scenario\":\"...\",\"options\":[{\"text\":\"...\",\"rank\":\"best\",\"feedback\":\"...\"},{\"text\":\"...\",\"rank\":\"medium\",\"feedback\":\"...\"},{\"text\":\"...\",\"rank\":\"least\",\"feedback\":\"...\"}]}";
     }
+    const m = pickMoment();
     return base +
-      "MODE: Scenario Practice (multiple choice). Generate ONE short, realistic inclusive-hiring scenario from a social services context (reviewing a resume, an interview moment, or a debrief). Then write exactly THREE possible responses the hiring manager could choose, ranked by how well they align with the training:\n- one BEST response (most aligned with the training's concepts and strategies),\n- one MEDIUM response (partially aligned, well-meaning but flawed),\n- one LEAST response (least aligned, reflects a bias from the training).\nFor each option write a short feedback note. The best option's feedback affirms why it aligns. The medium and least options' feedback gently explains, with curiosity and no shame, why it is not the best choice and which bias or principle it misses, naming it in the training's vocabulary.\nNever use a candidate's identity as the twist. " + langLine +
+      "MODE: Scenario Practice (multiple choice). The moment for THIS card must be: " + m + "\nGenerate ONE short, realistic scenario in that setting, from a social services context. Then write exactly THREE possible responses the hiring manager could choose, ranked by how well they align with the training:\n- one BEST response (most aligned with the training's concepts and strategies),\n- one MEDIUM response (partially aligned, well-meaning but flawed),\n- one LEAST response (least aligned, reflects a bias from the training).\nFor each option write a short feedback note. The best option's feedback affirms why it aligns. The medium and least options' feedback gently explains, with curiosity and no shame, why it is not the best choice and which bias or principle it misses, naming it in the training's vocabulary.\nVary the setup across resume look, interview wording, and debrief timing; do NOT default to employment gaps. Never use a candidate's identity as the twist. " + langLine +
       "\n\nReturn ONLY valid JSON, no markdown, no preamble, in exactly this shape:\n{\"scenario\":\"...\",\"options\":[{\"text\":\"...\",\"rank\":\"best\",\"feedback\":\"...\"},{\"text\":\"...\",\"rank\":\"medium\",\"feedback\":\"...\"},{\"text\":\"...\",\"rank\":\"least\",\"feedback\":\"...\"}]}";
   }
 
