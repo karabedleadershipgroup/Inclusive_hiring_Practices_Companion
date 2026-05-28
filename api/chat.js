@@ -1,23 +1,24 @@
-// Vercel serverless function: /api/chat
-// Holds your Anthropic API key server-side and relays the companion's chat calls.
-// The key is read from the ANTHROPIC_API_KEY environment variable you set in Vercel.
-
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    res.status(405).json({ error: "Method not allowed" });
-    return;
-  }
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  if (req.method === "OPTIONS") return res.status(200).end();
+  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    res.status(500).json({ error: "Server is missing ANTHROPIC_API_KEY" });
-    return;
+  if (!apiKey) return res.status(500).json({ error: "Server is missing ANTHROPIC_API_KEY" });
+
+  // Light access gate. Set ACCESS_CODE in Vercel; change it anytime to rotate.
+  // If ACCESS_CODE is not set, the gate is open (no protection).
+  const required = process.env.ACCESS_CODE;
+  const provided = (req.body && req.body.accessCode) ? String(req.body.accessCode).trim() : "";
+  if (required && provided.toLowerCase() !== String(required).trim().toLowerCase()) {
+    return res.status(401).json({ error: "invalid_code" });
   }
 
   try {
     const { system, messages } = req.body || {};
-
-    const upstream = await fetch("https://api.anthropic.com/v1/messages", {
+    const r = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -31,10 +32,9 @@ export default async function handler(req, res) {
         messages: messages
       })
     });
-
-    const data = await upstream.json();
-    res.status(upstream.status).json(data);
-  } catch (err) {
-    res.status(500).json({ error: "Request failed", detail: String(err) });
+    const data = await r.json();
+    return res.status(r.status).json(data);
+  } catch (error) {
+    return res.status(500).json({ error: "Something went wrong", detail: String(error) });
   }
 }
