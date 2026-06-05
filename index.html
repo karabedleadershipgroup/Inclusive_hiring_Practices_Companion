@@ -295,7 +295,6 @@
 <script>
   const ICONS = {
     refresher:'<svg viewBox="0 0 24 24"><path d="M3 5h13a2 2 0 0 1 2 2v12"/><path d="M3 5v12a2 2 0 0 0 2 2h11"/><path d="M8 9h7M8 13h5"/></svg>',
-    guidance:'<svg viewBox="0 0 24 24"><path d="M12 3l2.2 5.8L20 9l-4.5 4 1.3 6L12 16l-4.8 3 1.3-6L4 9l5.8-.2z"/></svg>',
     scenario:'<svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7A8.4 8.4 0 0 1 4 11.5 8.5 8.5 0 0 1 12.5 3 8.4 8.4 0 0 1 21 11.5z"/></svg>',
     trap:'<svg viewBox="0 0 24 24"><path d="M12 3l9 16H3z"/><path d="M12 9v5M12 17h.01"/></svg>',
     concept:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.8.4-1 .9-1 1.7M12 16.5h.01"/></svg>',
@@ -345,7 +344,6 @@ For anything else that needs HR, a lawyer, or a clinician, say so plainly and wa
 
   const MODE_INSTRUCTION = {
     refresher:"MODE: Curriculum Refresher. Present one core idea from the training at a time, in the training's own order (bias and unconscious bias, then resumes, interviews, debrief) and language. A few sentences, then one reflection question connecting it to the learner's real hiring work. Do not advance until they respond. Follow them if they skip or revisit.",
-    guidance:"MODE: Ask for Guidance. The learner brings a real hiring moment. Coach them through it using the training. Ask to understand before advising. Help them notice which bias may be in play. Offer one strategy at a time, then check in. They decide.",
     scenario:"MODE: Scenario Practice. Present ONE short realistic hiring scenario (a resume, an interview moment, or a debrief) from a social services context, then ask what the learner would say or do. After they respond, give warm specific feedback: one strength, one thing to consider, both tied to a named bias or strategy from the training. Then offer another or invite a revision. Never use a candidate's identity as the 'twist.'",
     trap:"MODE: Assumption Trap Spotter. The learner shares a snap judgment about a candidate or a quick reaction. Help them name which trap it reflects, using the training's exact vocabulary (confirmation, similarity, halo, groupthink, anchoring, or a resume watch-out), by asking where possible. Then help them reframe with a question. Normalize that everyone has these; catching them is the skill. Never shame.",
     concept:"MODE: Concept Check. Ask one short question at a time about a core concept from the training (the definitions, the three interview biases, the debrief biases, the resume strategies). Wait. Affirm what's right, gently complete or correct in the training's language. Light and encouraging, never a test they can fail. Offer the next or let them stop."
@@ -386,7 +384,6 @@ Her beliefs: values are behaviors, not posters; you can't fix what you haven't m
       placeholder:'Type your response\u2026', send:'Send', thinking:'Thinking',
       cards:[
         {k:'refresher', t:'Curriculum Refresher', d:'Flip through the heart of the training, one idea at a time.', open:'Let\u2019s walk through the training one idea at a time. We\u2019ll start where it starts: with bias itself. Bias is a prejudice in favor of or against a person or group, usually in a way that\u2019s unfair. Before we go further, where in your hiring process do you think bias is most likely to slip in for you right now?'},
-        {k:'guidance', t:'Ask for Guidance', d:'Bring a real situation. Get coached on how to respond.', open:'Name it and tell me what\u2019s happening. How can I help?'},
         {k:'scenario', t:'Scenario Practice', d:'Read a real situation, pick the best response, and see why.', open:''},
         {k:'trap', t:'Assumption Trap Spotter', d:'Catch the snap judgment, name the trap, pick the best read.', open:''},
         {k:'concept', t:'Concept Check', d:'Quick questions on the biases and the three hiring moments.', open:'Quick one to warm up, no pressure. In your own words: what\u2019s the difference between bias and unconscious bias?'},
@@ -402,7 +399,6 @@ Her beliefs: values are behaviors, not posters; you can't fix what you haven't m
       placeholder:'Escribe tu respuesta\u2026', send:'Enviar', thinking:'Pensando',
       cards:[
         {k:'refresher', t:'Repaso del Contenido', d:'Recorre el coraz\u00f3n de la capacitaci\u00f3n, una idea a la vez.', open:'Recorramos la capacitaci\u00f3n una idea a la vez. Empecemos por el principio: el sesgo. El sesgo es un prejuicio a favor o en contra de una persona o grupo, normalmente de forma injusta. Antes de seguir, \u00bfen qu\u00e9 parte de tu proceso de contrataci\u00f3n crees que el sesgo se cuela m\u00e1s f\u00e1cilmente ahora?'},
-        {k:'guidance', t:'Pedir Orientaci\u00f3n', d:'Trae una situaci\u00f3n real. Recibe acompa\u00f1amiento para responder.', open:'N\u00f3mbralo y cu\u00e9ntame qu\u00e9 est\u00e1 pasando. \u00bfC\u00f3mo te puedo ayudar?'},
         {k:'scenario', t:'Pr\u00e1ctica de Escenarios', d:'Lee una situaci\u00f3n real, elige la mejor respuesta y descubre por qu\u00e9.', open:''},
         {k:'trap', t:'Detector de Suposiciones', d:'Atrapa el juicio r\u00e1pido, nombra la trampa y elige la mejor lectura.', open:''},
         {k:'concept', t:'Verificaci\u00f3n de Conceptos', d:'Preguntas r\u00e1pidas sobre los sesgos y los tres momentos.', open:'Una r\u00e1pida para calentar, sin presi\u00f3n. En tus palabras: \u00bfcu\u00e1l es la diferencia entre sesgo y sesgo inconsciente?'},
@@ -411,7 +407,7 @@ Her beliefs: values are behaviors, not posters; you can't fix what you haven't m
     }
   };
 
-  const TINTS = { refresher:['#EFE6CC','#A8893A'], guidance:['#E2E7F0','#1B2A4A'], scenario:['#E2EAE2','#5E7A5C'], trap:['#F0E2D6','#B5763A'], concept:['#E6E4EE','#5B5680'], askisa:['#EDE7D6','#A8893A'] };
+  const TINTS = { refresher:['#EFE6CC','#A8893A'], scenario:['#E2EAE2','#5E7A5C'], trap:['#F0E2D6','#B5763A'], concept:['#E6E4EE','#5B5680'], askisa:['#EDE7D6','#A8893A'] };
 
   // Curriculum Refresher slides (read-only, no API)
   const SLIDES = {
@@ -446,7 +442,7 @@ Her beliefs: values are behaviors, not posters; you can't fix what you haven't m
 
   let lang='en', mode=null, isLoading=false;
   let accessCode='';
-  let histories={refresher:[],guidance:[],scenario:[],trap:[],concept:[],askisa:[]};
+  let histories={refresher:[],scenario:[],trap:[],concept:[],askisa:[]};
 
   // ===== CLIENT-SIDE HARD-STOP BLOCKER (belt and suspenders, runs BEFORE any API call) =====
   // EN + ES keywords: discrimination, harassment, bullying, retaliation, abuse, and the -isms.
@@ -466,7 +462,7 @@ Her beliefs: values are behaviors, not posters; you can't fix what you haven't m
     es:'Gracias por confiar esto en m\u00ed. Esto es algo en lo que este espacio de pr\u00e1ctica no puede acompa\u00f1arte \u2014 y mereces apoyo real y calificado. Por favor escribe lo que pas\u00f3 mientras est\u00e1 fresco, con fechas, horas, qui\u00e9nes estaban presentes y detalles espec\u00edficos. Luego ll\u00e9valo a tu supervisor o a Recursos Humanos de inmediato. Si algo se siente urgente o inseguro, acude a RR. HH. de inmediato.'
   };
   // Once a mode's thread trips the hard stop, it stays stopped: no more API calls, only the redirect.
-  let hardStopped = {refresher:false,guidance:false,scenario:false,trap:false,concept:false,askisa:false};
+  let hardStopped = {refresher:false,scenario:false,trap:false,concept:false,askisa:false};
 
   const pickerEl=document.getElementById('picker');
   const chatEl=document.getElementById('chat');
