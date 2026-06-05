@@ -166,16 +166,20 @@
   .send:hover:not(:disabled) { transform:translateY(-1px); }
   .send:disabled { opacity:.45; cursor:default; }
 
-  /* ACCESS GATE */
+  /* ACCESS GATE + TERMS OF USE */
   #gate { position:fixed; inset:0; z-index:50; display:flex; align-items:center; justify-content:center; padding:24px;
-    background:linear-gradient(135deg, var(--navy) 0%, #16223C 100%); }
+    background:linear-gradient(135deg, var(--navy) 0%, #16223C 100%); overflow-y:auto; }
   #gate::before { content:""; position:absolute; inset:0; opacity:.06;
     background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
   .gate-card { position:relative; z-index:2; width:100%; max-width:420px; background:rgba(255,255,255,.97); border-radius:22px;
-    border-top:5px solid var(--gold); padding:40px 34px 32px; text-align:center; box-shadow:0 30px 70px -30px rgba(0,0,0,.6); }
-  .gate-card img { height:56px; width:auto; border-radius:10px; margin-bottom:18px; }
+    border-top:5px solid var(--gold); padding:32px 34px 28px; text-align:center; box-shadow:0 30px 70px -30px rgba(0,0,0,.6); }
+  .gate-card.tos { max-width:540px; }
+  .gate-card img { height:56px; width:auto; border-radius:10px; margin-bottom:16px; }
   .gate-card h2 { font-family:'Fraunces',serif; font-weight:600; font-size:23px; color:var(--navy); margin-bottom:8px; }
-  .gate-card p { font-size:13.5px; color:var(--muted); margin-bottom:22px; line-height:1.5; }
+  .gate-card p.gate-sub { font-size:13.5px; color:var(--muted); margin-bottom:20px; line-height:1.5; }
+  .gate-lang { display:flex; justify-content:center; gap:6px; margin-bottom:14px; }
+  .gate-lang button { background:transparent; border:1px solid var(--line); color:var(--muted); border-radius:999px; padding:4px 14px; font-family:inherit; font-size:12px; cursor:pointer; }
+  .gate-lang button.active { background:var(--navy); color:#fff; border-color:var(--navy); font-weight:600; }
   .gate-input { width:100%; font-family:inherit; font-size:17px; text-align:center; letter-spacing:1px; border:1.5px solid var(--line);
     border-radius:14px; padding:14px 16px; color:var(--ink); background:#fff; }
   .gate-input:focus { outline:none; border-color:var(--gold); }
@@ -183,17 +187,37 @@
     border:none; border-radius:14px; padding:14px; font-family:inherit; font-weight:600; font-size:16px; cursor:pointer; box-shadow:0 4px 14px -6px rgba(168,137,58,.6); }
   .gate-btn:hover { transform:translateY(-1px); }
   .gate-err { color:#C2553F; font-size:13px; margin-top:12px; min-height:18px; }
+  .gate-tos { text-align:left; font-size:12.5px; color:var(--ink); line-height:1.55; background:var(--bg); border:1px solid var(--line);
+    border-radius:12px; padding:14px 16px; max-height:44vh; overflow-y:auto; margin-bottom:4px; }
+  .gate-tos h3 { font-family:'Fraunces',serif; font-size:14px; color:var(--navy); margin:12px 0 4px; }
+  .gate-tos h3:first-child { margin-top:0; }
+  .gate-tos p { margin-bottom:6px; }
+  .gate-small { font-size:11.5px; color:var(--muted); margin-top:10px; }
 </style>
 </head>
 <body>
   <div id="gate">
-    <div class="gate-card">
+    <!-- STEP 1: ACCESS CODE -->
+    <div class="gate-card" id="gate-code-view">
+      <div class="gate-lang">
+        <button id="gl-en" class="active" onclick="setGateLang('en')">EN</button>
+        <button id="gl-es" onclick="setGateLang('es')">ES</button>
+      </div>
       <img id="gate-logo" src="" alt="Karabed Leadership Group">
       <h2 id="gate-title">Enter your access code</h2>
-      <p id="gate-sub">This companion is shared with partner organizations. Enter the code you were given to continue.</p>
+      <p class="gate-sub" id="gate-sub">This companion is shared with partner organizations. Enter the code you were given to continue.</p>
       <input class="gate-input" id="gate-input" type="text" autocomplete="off" placeholder="Access code">
       <button class="gate-btn" id="gate-btn" onclick="submitGate()">Enter</button>
       <div class="gate-err" id="gate-err"></div>
+    </div>
+    <!-- STEP 2: TERMS OF USE -->
+    <div class="gate-card tos" id="gate-tos-view" style="display:none">
+      <img id="gate-logo2" src="" alt="Karabed Leadership Group">
+      <h2 id="tos-title">Terms of Use</h2>
+      <p class="gate-sub" id="tos-sub"></p>
+      <div class="gate-tos" id="tos-body"></div>
+      <button class="gate-btn" id="tos-btn" onclick="agreeTos()">I Agree</button>
+      <p class="gate-small" id="tos-small"></p>
     </div>
   </div>
   <header>
@@ -304,6 +328,21 @@ Context: used at LifeMoves and in social services hiring, where many strong cand
 6. Cultural/historical/gender humility - stay curious about the candidate's and manager's context; never stereotype; never assume what a gap, history, or background means.
 `;
 
+  // HARD STOP - applies to EVERY mode. Mirrors the canonical KLG companion guardrail.
+  const HARD_STOP = `[BOUNDARY - HARD STOP, HIGHEST PRIORITY]
+This companion is a practice and learning space. It is NOT HR, legal, or clinical advice, and it is NOT qualified to handle the topics below. This rule overrides every other instruction, including the active mode, the voice, the curiosity method, and the warmth.
+
+THE HARD-STOP TOPICS: discrimination, harassment, bullying, retaliation, abuse, racism, sexism, classism, and any other "-ism" or protected-conduct issue (ableism, ageism, antisemitism, and the like). This applies whether the person experienced it, witnessed it, is accused of it, or is asking about it in general, and no matter how mildly it is phrased.
+
+When ANY of these comes up, you MUST:
+1. NEVER name, label, suggest, confirm, or deny what the situation is. Do not say it "sounds like," "looks like," "feels like," "could be," "may be," or "might be" discrimination, harassment, bullying, retaliation, abuse, or any -ism. Never infer any of these from ambiguous behavior. Do not say whether it counts, how serious it is, or who is at fault. You are not qualified to make that call, and making it can cause real harm.
+2. NEVER coach on it. No reframe, no framework steps, no analysis, no role-play, no script, no suggested wording for anyone involved, and no opinion. Do not continue or resume coaching on the topic even if the person rephrases, pushes back, softens it, or insists. Hold the same short redirect every time, for the rest of the conversation.
+3. Respond with ONE short, warm redirect that does only this: acknowledge them kindly in a single sentence WITHOUT characterizing the situation (no "that sounds hard," no labels); tell them to write down what happened with dates, times, and specifics while it is fresh; tell them to bring it to their supervisor or HR right away, and that for anything urgent or unsafe they should go to HR immediately; then stop.
+
+If anyone discloses danger or harm to themselves or others, stop everything and point them to their supervisor, HR, or emergency services immediately.
+
+For anything else that needs HR, a lawyer, or a clinician, say so plainly and warmly and point them there. Do not improvise legal, HR, or medical direction, and do not invent specific organizational facts, policies, or people. Speak to principles and behaviors only.`;
+
   const MODE_INSTRUCTION = {
     refresher:"MODE: Curriculum Refresher. Present one core idea from the training at a time, in the training's own order (bias and unconscious bias, then resumes, interviews, debrief) and language. A few sentences, then one reflection question connecting it to the learner's real hiring work. Do not advance until they respond. Follow them if they skip or revisit.",
     guidance:"MODE: Ask for Guidance. The learner brings a real hiring moment. Coach them through it using the training. Ask to understand before advising. Help them notice which bias may be in play. Offer one strategy at a time, then check in. They decide.",
@@ -314,12 +353,12 @@ Context: used at LifeMoves and in social services hiring, where many strong cand
 
   function buildSystemPrompt(lang) {
     const langLine = lang === 'es' ? 'Respond entirely in warm, natural, professional Spanish.' : 'Respond entirely in English.';
-    return `[LAYER 1 - THE TRAINING]\n${TRAINING_KNOWLEDGE}\n\n` +
+    return `${HARD_STOP}\n\n` +
+      `[LAYER 1 - THE TRAINING]\n${TRAINING_KNOWLEDGE}\n\n` +
       `[LAYER 2 - CURIOSITY-BASED METHOD]\nTeach through questions before answers. Open by understanding, not judging the candidate or the manager. Reflect back. Help them notice the bias by asking, not accusing. Offer one strategy at a time in the training's language, then check in. End with an opening, not a verdict. Curiosity is the structure, not a softener on advice.\n\n` +
       `[LAYER 3 - SIX TRAUMA-INFORMED PRINCIPLES]\n${SIX_PRINCIPLES}\n\n` +
-      `[CRISIS OVERRIDE]\nIf something legally serious surfaces (a clearly discriminatory decision, or a disclosure of harm), stop curiosity mode, name it plainly and kindly, point toward HR or counsel. You are a practice space, not legal or HR advice.\n\n` +
       `[LANGUAGE]\n${langLine}\n\n` +
-      `[STYLE]\nKeep responses short: one or two short paragraphs, or a brief reflection plus one question. Never dump all strategies at once unless asked. Silently self-check each turn: Did I ask before I answered? Did I preserve their choice? Could this shame them or stereotype the candidate? Am I assuming something I should ask about?`;
+      `[STYLE]\nKeep responses short: one or two short paragraphs, or a brief reflection plus one question. Never dump all strategies at once unless asked. Silently self-check each turn: Did I respect the hard stop? Did I ask before I answered? Did I preserve their choice? Could this shame them or stereotype the candidate? Am I assuming something I should ask about?`;
   }
 
   // Dr. Isa portable voice profile (constant across companions)
@@ -330,20 +369,10 @@ Her beliefs: values are behaviors, not posters; you can't fix what you haven't m
 
   function buildIsaPrompt(lang) {
     const langLine = lang === 'es' ? 'Answer in warm, natural, professional Spanish.' : 'Answer in English.';
-    return `[VOICE]\n${ISA_VOICE}\n\n` +
+    return `${HARD_STOP}\n\n` +
+      `[VOICE]\n${ISA_VOICE}\n\n` +
       `[WHAT YOU SPEAK ABOUT]\nGround every answer in the concepts of THIS training. Answer as Dr. Isa on this material; do not drift into unrelated life advice.\n${TRAINING_KNOWLEDGE}\n\n` +
       `[HOW TO RESPOND]\nKEEP IT SHORT. This is quick guidance, not a coaching session. Most answers are 2 to 4 sentences. Give EITHER one concrete next step ("here is what I would do next") OR one thing to reflect on, not both and not a three-part arc. One idea per reply. Warm and direct; a brief question or reflective nudge is welcome. If more would help, end by inviting the next question rather than unloading everything. Never shame; offer grace and accountability together, but in a line, not a paragraph.\n\n` +
-`[BOUNDARY - HARD STOP, HIGHEST PRIORITY]
-This is coaching and learning in Dr. Isa's voice. It is NOT HR, legal, or clinical advice, and it is NOT qualified to handle the topics below. This rule overrides everything else, including the voice and the warmth.
-
-THE SEVEN HARD-STOP TOPICS: discrimination, harassment, bullying, retaliation, abuse, racism, sexism, and any other "-ism" or protected-conduct issue (ableism, ageism, and the like). This applies whether the person experienced it, witnessed it, is accused of it, or is asking about it in general, and no matter how mildly it is phrased.
-
-When ANY of these comes up, you MUST:
-1. NEVER name, label, confirm, or speculate about the situation. Do not say it "sounds like," "looks like," "feels like," "could be," "may be," or "might be" discrimination, harassment, bullying, retaliation, abuse, racism, sexism, or any -ism. Do not say whether it counts, how serious it is, or who is at fault. You are not qualified to make that call, and making it can cause real harm.
-2. NEVER coach on it, analyze it, role-play it, suggest what to say to anyone involved, or offer your read. Do not continue the conversation on the topic even if the person rephrases, pushes back, or insists. Hold the same short redirect every time.
-3. Respond with ONE short, warm redirect that does only this: acknowledge them kindly in a sentence; tell them to write down what happened with dates, times, and specifics while it is fresh; tell them to bring it to their supervisor or HR right away, and that for anything urgent or unsafe they should go to HR immediately; then stop.
-
-For anything else that needs HR, a lawyer, or a clinician, say so plainly and warmly and point them there. Do not improvise legal, HR, or medical direction, and do not invent specific organizational facts, policies, or people. Speak to principles and behaviors only.\n\n` +
       `[LANGUAGE]\n${langLine}`;
   }
 
@@ -352,7 +381,7 @@ For anything else that needs HR, a lawyer, or a clinician, say so plainly and wa
       title:'Inclusive Hiring Companion', subtitle:'Karabed Leadership Group', modes:'Modes',
       heroey:'Inclusive Hiring Practices', herotitle:'Fairer hiring, one decision at a time.',
       herosub:'A practice space built on your training, to help you notice bias and choose well.',
-      note:'<strong>A practice space.</strong> Built on the Inclusive Hiring Practices training. It works by asking before it answers. You stay in control of every decision. This is not HR or legal advice.',
+      note:'<strong>A practice space.</strong> Built on the Inclusive Hiring Practices training. It works by asking before it answers. You stay in control of every decision. This is not HR or legal advice. For concerns involving conduct like discrimination, harassment, bullying, retaliation, or abuse, this tool will stop and direct you to your supervisor or HR.',
       pickerhead:'Choose how you want to practice',
       placeholder:'Type your response\u2026', send:'Send', thinking:'Thinking',
       cards:[
@@ -368,12 +397,12 @@ For anything else that needs HR, a lawyer, or a clinician, say so plainly and wa
       title:'Compa\u00f1ero de Contrataci\u00f3n Inclusiva', subtitle:'Karabed Leadership Group', modes:'Modos',
       heroey:'Pr\u00e1cticas de Contrataci\u00f3n Inclusiva', herotitle:'Contrataci\u00f3n m\u00e1s justa, una decisi\u00f3n a la vez.',
       herosub:'Un espacio de pr\u00e1ctica basado en tu capacitaci\u00f3n, para notar el sesgo y elegir bien.',
-      note:'<strong>Un espacio de pr\u00e1ctica.</strong> Basado en la capacitaci\u00f3n de Pr\u00e1cticas de Contrataci\u00f3n Inclusiva. Funciona preguntando antes de responder. T\u00fa mantienes el control de cada decisi\u00f3n. Esto no es asesor\u00eda legal ni de recursos humanos.',
+      note:'<strong>Un espacio de pr\u00e1ctica.</strong> Basado en la capacitaci\u00f3n de Pr\u00e1cticas de Contrataci\u00f3n Inclusiva. Funciona preguntando antes de responder. T\u00fa mantienes el control de cada decisi\u00f3n. Esto no es asesor\u00eda legal ni de recursos humanos. Ante temas de conducta como discriminaci\u00f3n, acoso, intimidaci\u00f3n, represalias o abuso, esta herramienta se detendr\u00e1 y te dirigir\u00e1 a tu supervisor o a RR. HH.',
       pickerhead:'Elige c\u00f3mo quieres practicar',
       placeholder:'Escribe tu respuesta\u2026', send:'Enviar', thinking:'Pensando',
       cards:[
         {k:'refresher', t:'Repaso del Contenido', d:'Recorre el coraz\u00f3n de la capacitaci\u00f3n, una idea a la vez.', open:'Recorramos la capacitaci\u00f3n una idea a la vez. Empecemos por el principio: el sesgo. El sesgo es un prejuicio a favor o en contra de una persona o grupo, normalmente de forma injusta. Antes de seguir, \u00bfen qu\u00e9 parte de tu proceso de contrataci\u00f3n crees que el sesgo se cuela m\u00e1s f\u00e1cilmente ahora?'},
-        {k:'guidance', t:'Pedir Orientaci\u00f3n', d:'Trae una situaci\u00f3n real. Recibe acompa\u00f1amiento para responder.', open:'Nómbralo y cu\u00e9ntame qu\u00e9 est\u00e1 pasando. \u00bfC\u00f3mo te puedo ayudar?'},
+        {k:'guidance', t:'Pedir Orientaci\u00f3n', d:'Trae una situaci\u00f3n real. Recibe acompa\u00f1amiento para responder.', open:'N\u00f3mbralo y cu\u00e9ntame qu\u00e9 est\u00e1 pasando. \u00bfC\u00f3mo te puedo ayudar?'},
         {k:'scenario', t:'Pr\u00e1ctica de Escenarios', d:'Lee una situaci\u00f3n real, elige la mejor respuesta y descubre por qu\u00e9.', open:''},
         {k:'trap', t:'Detector de Suposiciones', d:'Atrapa el juicio r\u00e1pido, nombra la trampa y elige la mejor lectura.', open:''},
         {k:'concept', t:'Verificaci\u00f3n de Conceptos', d:'Preguntas r\u00e1pidas sobre los sesgos y los tres momentos.', open:'Una r\u00e1pida para calentar, sin presi\u00f3n. En tus palabras: \u00bfcu\u00e1l es la diferencia entre sesgo y sesgo inconsciente?'},
@@ -418,6 +447,26 @@ For anything else that needs HR, a lawyer, or a clinician, say so plainly and wa
   let lang='en', mode=null, isLoading=false;
   let accessCode='';
   let histories={refresher:[],guidance:[],scenario:[],trap:[],concept:[],askisa:[]};
+
+  // ===== CLIENT-SIDE HARD-STOP BLOCKER (belt and suspenders, runs BEFORE any API call) =====
+  // EN + ES keywords: discrimination, harassment, bullying, retaliation, abuse, and the -isms.
+  const HARD_STOP_REGEX = new RegExp([
+    'discriminat\\w*','harass\\w*','bull(?:y|ies|ied|ying)','retaliat\\w*','abus(?:e|ed|es|ing|ive)\\w*',
+    'racis(?:m|t)\\w*','sexis(?:m|t)\\w*','classis(?:m|t)\\w*','ableis(?:m|t)\\w*','ageis(?:m|t)\\w*',
+    'anti[- ]?semit\\w*','heterosexis\\w*','coloris(?:m|t)\\w*','sizeis(?:m|t)\\w*','lookis(?:m|t)\\w*',
+    'nativis(?:m|t)\\w*','misogyn\\w*','homophob\\w*','transphob\\w*','xenophob\\w*','hostile work environment',
+    'discriminaci\\u00f3n','discriminacion','discriminar\\w*','discriminad\\w*','acos\\w*','hostiga\\w*',
+    'intimidaci\\u00f3n','intimidacion','represalia\\w*','abuso\\w*','abusiv\\w*','maltrat\\w*',
+    'racismo','racista\\w*','sexismo','sexista\\w*','clasismo','clasista\\w*','capacitismo','edadismo',
+    'misogini\\w*','hom\\u00f3fob\\w*','homofob\\w*','transf\\u00f3bic\\w*','transfob\\w*','xenofob\\w*','xen\\u00f3fob\\w*'
+  ].map(p=>'\\b'+p).join('|'), 'i');
+
+  const HARD_STOP_REPLY = {
+    en:'Thank you for trusting me with this. This is something this practice space isn\u2019t able to coach on \u2014 and you deserve real, qualified support. Please write down what happened while it\u2019s fresh, with dates, times, who was there, and specifics. Then bring it to your supervisor or HR right away. If anything feels urgent or unsafe, go to HR immediately.',
+    es:'Gracias por confiar esto en m\u00ed. Esto es algo en lo que este espacio de pr\u00e1ctica no puede acompa\u00f1arte \u2014 y mereces apoyo real y calificado. Por favor escribe lo que pas\u00f3 mientras est\u00e1 fresco, con fechas, horas, qui\u00e9nes estaban presentes y detalles espec\u00edficos. Luego ll\u00e9valo a tu supervisor o a Recursos Humanos de inmediato. Si algo se siente urgente o inseguro, acude a RR. HH. de inmediato.'
+  };
+  // Once a mode's thread trips the hard stop, it stays stopped: no more API calls, only the redirect.
+  let hardStopped = {refresher:false,guidance:false,scenario:false,trap:false,concept:false,askisa:false};
 
   const pickerEl=document.getElementById('picker');
   const chatEl=document.getElementById('chat');
@@ -544,16 +593,17 @@ For anything else that needs HR, a lawyer, or a clinician, say so plainly and wa
 
   function quizPrompt(lang, kind){
     const langLine = lang==='es' ? 'Write everything in warm, natural, professional Spanish.' : 'Write everything in English.';
+    const safeLine = "Scenarios, options, and feedback must stay within the training's own bias vocabulary (confirmation bias, similarity bias, halo effect, groupthink, anchoring, resume watch-outs); never depict, name, or label discrimination, harassment, bullying, retaliation, or abuse. ";
     const base = buildSystemPrompt(lang) + "\n\n[ACTIVE MODE]\n";
     if(kind==='trap'){
       const m = pickMoment();
       return base +
-        "MODE: Assumption Trap Spotter (multiple choice, KEEP IT SHORT). The moment for THIS card must be: " + m + "\nGenerate ONE very short snap-judgment moment in that setting: a hiring manager forms a quick assumption (one or two sentences max). Then write exactly THREE possible reads of that moment, ranked by alignment with the training:\n- BEST: correctly names the assumption as a bias/trap from the training and reframes it.\n- MEDIUM: partly catches it but misses the trap or the reframe.\n- LEAST: accepts the snap judgment at face value.\nKeep EVERYTHING short: each option max ~12 words, each feedback max ~20 words. Feedback names the trap (confirmation, similarity, halo, groupthink, anchoring, or a resume watch-out) with curiosity and no shame. Vary the setup; do not default to employment gaps. Never use a candidate's identity as the twist. " + langLine +
+        "MODE: Assumption Trap Spotter (multiple choice, KEEP IT SHORT). The moment for THIS card must be: " + m + "\nGenerate ONE very short snap-judgment moment in that setting: a hiring manager forms a quick assumption (one or two sentences max). Then write exactly THREE possible reads of that moment, ranked by alignment with the training:\n- BEST: correctly names the assumption as a bias/trap from the training and reframes it.\n- MEDIUM: partly catches it but misses the trap or the reframe.\n- LEAST: accepts the snap judgment at face value.\nKeep EVERYTHING short: each option max ~12 words, each feedback max ~20 words. Feedback names the trap (confirmation, similarity, halo, groupthink, anchoring, or a resume watch-out) with curiosity and no shame. Vary the setup; do not default to employment gaps. Never use a candidate's identity as the twist. " + safeLine + langLine +
         "\n\nReturn ONLY valid JSON, no markdown, no preamble, exactly:\n{\"scenario\":\"...\",\"options\":[{\"text\":\"...\",\"rank\":\"best\",\"feedback\":\"...\"},{\"text\":\"...\",\"rank\":\"medium\",\"feedback\":\"...\"},{\"text\":\"...\",\"rank\":\"least\",\"feedback\":\"...\"}]}";
     }
     const m = pickMoment();
     return base +
-      "MODE: Scenario Practice (multiple choice). The moment for THIS card must be: " + m + "\nGenerate ONE short, realistic scenario in that setting, from a social services context. Then write exactly THREE possible responses the hiring manager could choose, ranked by how well they align with the training:\n- one BEST response (most aligned with the training's concepts and strategies),\n- one MEDIUM response (partially aligned, well-meaning but flawed),\n- one LEAST response (least aligned, reflects a bias from the training).\nFor each option write a short feedback note. The best option's feedback affirms why it aligns. The medium and least options' feedback gently explains, with curiosity and no shame, why it is not the best choice and which bias or principle it misses, naming it in the training's vocabulary.\nVary the setup across resume look, interview wording, and debrief timing; do NOT default to employment gaps. Never use a candidate's identity as the twist. " + langLine +
+      "MODE: Scenario Practice (multiple choice). The moment for THIS card must be: " + m + "\nGenerate ONE short, realistic scenario in that setting, from a social services context. Then write exactly THREE possible responses the hiring manager could choose, ranked by how well they align with the training:\n- one BEST response (most aligned with the training's concepts and strategies),\n- one MEDIUM response (partially aligned, well-meaning but flawed),\n- one LEAST response (least aligned, reflects a bias from the training).\nFor each option write a short feedback note. The best option's feedback affirms why it aligns. The medium and least options' feedback gently explains, with curiosity and no shame, why it is not the best choice and which bias or principle it misses, naming it in the training's vocabulary.\nVary the setup across resume look, interview wording, and debrief timing; do NOT default to employment gaps. Never use a candidate's identity as the twist. " + safeLine + langLine +
       "\n\nReturn ONLY valid JSON, no markdown, no preamble, in exactly this shape:\n{\"scenario\":\"...\",\"options\":[{\"text\":\"...\",\"rank\":\"best\",\"feedback\":\"...\"},{\"text\":\"...\",\"rank\":\"medium\",\"feedback\":\"...\"},{\"text\":\"...\",\"rank\":\"least\",\"feedback\":\"...\"}]}";
   }
 
@@ -647,7 +697,19 @@ For anything else that needs HR, a lawyer, or a clinician, say so plainly and wa
 
   async function onSend(){
     const text=inputEl.value.trim(); if(!text||isLoading) return;
-    inputEl.value=''; histories[mode].push({role:'user',content:text}); renderChat(); setLoading(true);
+    inputEl.value='';
+    histories[mode].push({role:'user',content:text});
+
+    // HARD STOP: if this thread is already stopped, or the message names a hard-stop topic,
+    // do NOT call the AI at all. Reply with the warm redirect and keep the thread stopped.
+    if(hardStopped[mode] || HARD_STOP_REGEX.test(text)){
+      hardStopped[mode]=true;
+      histories[mode].push({role:'assistant',content:HARD_STOP_REPLY[lang]});
+      renderChat();
+      return;
+    }
+
+    renderChat(); setLoading(true);
     try{
       const response=await fetch("/api/chat",{
         method:"POST", headers:{"Content-Type":"application/json"},
@@ -671,40 +733,61 @@ For anything else that needs HR, a lawyer, or a clinician, say so plainly and wa
     else if(e.key==='ArrowLeft') slideMove(-1);
   });
 
-  // ----- access gate -----
+  // ----- access gate (Step 1: code) + terms of use (Step 2: I Agree) -----
+  const ACCESS_CODE = 'KLG2026!';
   const GATE_TXT = {
-    en:{ title:'Enter your access code', sub:'This companion is shared with partner organizations. Enter the code you were given to continue.', ph:'Access code', btn:'Enter', err:'That code didn\u2019t work. Check it and try again.' },
-    es:{ title:'Ingresa tu c\u00f3digo de acceso', sub:'Este compa\u00f1ero se comparte con organizaciones aliadas. Ingresa el c\u00f3digo que recibiste para continuar.', ph:'C\u00f3digo de acceso', btn:'Entrar', err:'Ese c\u00f3digo no funcion\u00f3. Rev\u00edsalo e intenta de nuevo.' }
+    en:{ title:'Enter your access code', sub:'This companion is shared with partner organizations. Enter the code you were given to continue.', ph:'Access code', btn:'Enter', err:'That code didn\u2019t work. Check it and try again.',
+         tosTitle:'Terms of Use', tosSub:'Please review and agree before entering.', tosBtn:'I Agree',
+         tosSmall:'By selecting \u201cI Agree,\u201d you accept these terms.',
+         tosBody:'<h3>What this is</h3><p>This companion is a practice and learning space built on the Karabed Leadership Group (KLG) Inclusive Hiring Practices training, for use by authorized partner organizations and their staff.</p>'+
+           '<h3>What it is not</h3><p>It is not HR, legal, or clinical advice, and it does not replace your supervisor, your HR team, or qualified professionals. Responses are generated by AI and may be incomplete or imperfect. Use your own judgment and your organization\u2019s policies for real decisions.</p>'+
+           '<h3>Serious workplace concerns</h3><p>This tool does not assess, label, or coach on concerns involving discrimination, harassment, bullying, retaliation, abuse, or related conduct. If these topics come up, the companion will stop and direct you to document what happened and contact your supervisor or HR right away. For anything urgent or unsafe, go to HR immediately.</p>'+
+           '<h3>Privacy</h3><p>Do not enter confidential, identifying, or sensitive personal information about candidates, clients, or coworkers. Use general descriptions instead of names.</p>'+
+           '<h3>Ownership and use</h3><p>All training content and materials are the property of Karabed Leadership Group and are provided for authorized learning use only. The tool is provided \u201cas is,\u201d without warranty of any kind, and KLG is not liable for decisions made based on its responses.</p>' },
+    es:{ title:'Ingresa tu c\u00f3digo de acceso', sub:'Este compa\u00f1ero se comparte con organizaciones aliadas. Ingresa el c\u00f3digo que recibiste para continuar.', ph:'C\u00f3digo de acceso', btn:'Entrar', err:'Ese c\u00f3digo no funcion\u00f3. Rev\u00edsalo e intenta de nuevo.',
+         tosTitle:'T\u00e9rminos de Uso', tosSub:'Por favor revisa y acepta antes de entrar.', tosBtn:'Acepto',
+         tosSmall:'Al seleccionar \u201cAcepto\u201d, aceptas estos t\u00e9rminos.',
+         tosBody:'<h3>Qu\u00e9 es esto</h3><p>Este compa\u00f1ero es un espacio de pr\u00e1ctica y aprendizaje basado en la capacitaci\u00f3n de Pr\u00e1cticas de Contrataci\u00f3n Inclusiva de Karabed Leadership Group (KLG), para uso de organizaciones aliadas autorizadas y su personal.</p>'+
+           '<h3>Qu\u00e9 no es</h3><p>No es asesor\u00eda de recursos humanos, legal ni cl\u00ednica, y no reemplaza a tu supervisor, a tu equipo de RR. HH. ni a profesionales calificados. Las respuestas son generadas por IA y pueden ser incompletas o imperfectas. Usa tu propio juicio y las pol\u00edticas de tu organizaci\u00f3n para decisiones reales.</p>'+
+           '<h3>Asuntos laborales serios</h3><p>Esta herramienta no eval\u00faa, etiqueta ni acompa\u00f1a asuntos de discriminaci\u00f3n, acoso, intimidaci\u00f3n, represalias, abuso o conductas relacionadas. Si estos temas surgen, el compa\u00f1ero se detendr\u00e1 y te indicar\u00e1 documentar lo ocurrido y contactar a tu supervisor o a RR. HH. de inmediato. Ante algo urgente o inseguro, acude a RR. HH. de inmediato.</p>'+
+           '<h3>Privacidad</h3><p>No ingreses informaci\u00f3n confidencial, identificable o sensible sobre candidatos, clientes o compa\u00f1eros de trabajo. Usa descripciones generales en lugar de nombres.</p>'+
+           '<h3>Propiedad y uso</h3><p>Todo el contenido y los materiales de capacitaci\u00f3n son propiedad de Karabed Leadership Group y se ofrecen \u00fanicamente para uso de aprendizaje autorizado. La herramienta se ofrece \u201ctal cual\u201d, sin garant\u00eda de ning\u00fan tipo, y KLG no es responsable de las decisiones tomadas con base en sus respuestas.</p>' }
   };
+  function setGateLang(l){
+    lang=l;
+    document.getElementById('gl-en').classList.toggle('active',l==='en');
+    document.getElementById('gl-es').classList.toggle('active',l==='es');
+    document.getElementById('btn-en').classList.toggle('active',l==='en');
+    document.getElementById('btn-es').classList.toggle('active',l==='es');
+    applyGateLang(); applyUI();
+  }
   function applyGateLang(){
     const g=GATE_TXT[lang];
     document.getElementById('gate-title').textContent=g.title;
     document.getElementById('gate-sub').textContent=g.sub;
     document.getElementById('gate-input').placeholder=g.ph;
     document.getElementById('gate-btn').textContent=g.btn;
+    document.getElementById('tos-title').textContent=g.tosTitle;
+    document.getElementById('tos-sub').textContent=g.tosSub;
+    document.getElementById('tos-body').innerHTML=g.tosBody;
+    document.getElementById('tos-btn').textContent=g.tosBtn;
+    document.getElementById('tos-small').textContent=g.tosSmall;
   }
-  async function submitGate(){
+  function submitGate(){
     const code=document.getElementById('gate-input').value.trim();
     const err=document.getElementById('gate-err');
-    if(!code){ err.textContent=GATE_TXT[lang].err; return; }
+    if(code.toUpperCase()!==ACCESS_CODE.toUpperCase()){ err.textContent=GATE_TXT[lang].err; return; }
     err.textContent='';
-    document.getElementById('gate-btn').disabled=true;
-    // verify against the backend with a tiny probe
-    try{
-      const r=await fetch("/api/chat",{ method:"POST", headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({ accessCode:code, system:"Reply with the single word OK.", messages:[{role:"user",content:"ping"}] }) });
-      if(r.status===401){ err.textContent=GATE_TXT[lang].err; document.getElementById('gate-btn').disabled=false; return; }
-      // any non-401 means the code passed the gate (even if the AI errored for another reason)
-      accessCode=code;
-      document.getElementById('gate').style.display='none';
-    }catch(e){
-      // network/other error: let them in optimistically; real calls will surface issues
-      accessCode=code;
-      document.getElementById('gate').style.display='none';
-    }
+    accessCode=code;
+    document.getElementById('gate-code-view').style.display='none';
+    document.getElementById('gate-tos-view').style.display='block';
+  }
+  function agreeTos(){
+    document.getElementById('gate').style.display='none';
   }
   document.getElementById('gate-input').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); submitGate(); } });
   document.getElementById('gate-logo').src=document.querySelector('.brand img').getAttribute('src');
+  document.getElementById('gate-logo2').src=document.querySelector('.brand img').getAttribute('src');
 
   applyGateLang();
   applyUI();
