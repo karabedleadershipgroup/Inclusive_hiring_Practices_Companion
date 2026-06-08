@@ -315,7 +315,7 @@ BIAS AT THREE MOMENTS IN HIRING:
 
 CENTRAL REFLECTION: which skills and strategies are most important for this person and their team to implement right now for a more inclusive hiring process.
 
-Context: used at LifeMoves and in social services hiring, where many strong candidates have nontraditional paths, lived experience, employment gaps, or histories that bias can unfairly penalize. Hold that context.
+Context: used in nonprofit and social services hiring, where many strong candidates have nontraditional paths, lived experience, employment gaps, or histories that bias can unfairly penalize. Hold that context.
 `;
 
   const SIX_PRINCIPLES = `
@@ -605,6 +605,33 @@ Her beliefs: values are behaviors, not posters; you can't fix what you haven't m
 
   function scShuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 
+  // Auto-retry with exponential backoff + jitter, so the companion holds up when
+  // many people hit it at once (transient 429/5xx/529 or network blips get retried).
+  async function chatFetch(payload){
+    const RETRY_STATUS = [429,500,502,503,504,529];
+    const tries = 4;
+    let delay = 700;
+    for(let i=0;i<tries;i++){
+      try{
+        const r = await fetch("/api/chat",{
+          method:"POST", headers:{"Content-Type":"application/json"},
+          body:JSON.stringify(payload)
+        });
+        if(RETRY_STATUS.includes(r.status) && i < tries-1){
+          await new Promise(res=>setTimeout(res, delay + Math.random()*300));
+          delay *= 2; continue;
+        }
+        return r;
+      }catch(e){
+        if(i < tries-1){
+          await new Promise(res=>setTimeout(res, delay + Math.random()*300));
+          delay *= 2; continue;
+        }
+        throw e;
+      }
+    }
+  }
+
   async function loadQuiz(kind){
     quizKind=kind; scData=null; scSolved=false;
     const t=SC_TXT[lang];
@@ -612,10 +639,7 @@ Her beliefs: values are behaviors, not posters; you can't fix what you haven't m
     const loadingTxt = kind==='trap' ? t.loadingTrap : t.loading;
     c.innerHTML='<div class="sc-loading">'+loadingTxt+' <span class="dots"><span></span><span></span><span></span></span></div>';
     try{
-      const response=await fetch("/api/chat",{
-        method:"POST", headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({ accessCode:accessCode, system:quizPrompt(lang,kind), messages:[{role:"user",content:"Generate one now."}] })
-      });
+      const response=await chatFetch({ accessCode:accessCode, system:quizPrompt(lang,kind), messages:[{role:"user",content:"Generate one now."}] });
       const data=await response.json();
       let raw=(data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("\n").trim();
       raw=raw.replace(/^```json\s*/i,'').replace(/^```\s*/,'').replace(/```$/,'').trim();
@@ -707,13 +731,10 @@ Her beliefs: values are behaviors, not posters; you can't fix what you haven't m
 
     renderChat(); setLoading(true);
     try{
-      const response=await fetch("/api/chat",{
-        method:"POST", headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({
-          accessCode:accessCode,
-          system: mode==='askisa' ? buildIsaPrompt(lang) : buildSystemPrompt(lang)+"\n\n[ACTIVE MODE]\n"+MODE_INSTRUCTION[mode],
-          messages:histories[mode]
-        })
+      const response=await chatFetch({
+        accessCode:accessCode,
+        system: mode==='askisa' ? buildIsaPrompt(lang) : buildSystemPrompt(lang)+"\n\n[ACTIVE MODE]\n"+MODE_INSTRUCTION[mode],
+        messages:histories[mode]
       });
       const data=await response.json();
       const reply=data.content.filter(b=>b.type==="text").map(b=>b.text).join("\n");
